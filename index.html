@@ -1,0 +1,465 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forever Open Finals Prediction</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: podium, then two horizontally scrolling bracket trees (upper, lower) with rounds as columns */
+:root {
+  color-scheme: dark;
+  --bg: #121417;
+  --panel: #1b1e23;
+  --panel-2: #23272d;
+  --line: #2a2e35;
+  --wire: #3a4049;
+  --fg: #e6e2d8;
+  --muted: #8f949c;
+  --gold: #ffbd0a;
+  --gold-dim: #4a3a10;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --c-druid: #ff7c0a; --c-hunter: #aad372; --c-mage: #3fc7eb;
+  --c-paladin: #f48cba; --c-priest: #f2f2f2; --c-rogue: #fff468;
+  --c-shaman: #2a8ef0; --c-warlock: #8788ee; --c-warrior: #c69b6d;
+  --colw: 246px;
+  --gap: 30px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.35; }
+.wrap { max-width: none; margin: 0 auto; padding: 28px 16px 40px; display: grid; gap: 16px; }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.1; }
+h1 small { display: block; font-size: 14px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+.sub { margin: 0; color: var(--muted); max-width: 80ch; font-size: 14px; }
+
+/* podium */
+.podium { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .podium { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.place { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.place.first { border-color: var(--gold); background: linear-gradient(160deg, var(--gold-dim), var(--panel) 70%); }
+.place .pos { font: 700 13px var(--font-display); letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.place .who { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+.place .nm { color: var(--cc); font: 700 22px var(--font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.place .sp { color: var(--muted); font-size: 13px; }
+
+/* bracket panels */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.panel > h2 { margin: 0; padding: 10px 14px; font: 600 20px var(--font-display); border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+.panel > h2 span { font: 400 12px var(--font-body); color: var(--muted); }
+.scroll { overflow-x: auto; padding: 0 14px 16px; }
+.tree { display: flex; gap: var(--gap); width: max-content; min-width: 100%; }
+.col { flex: 1 0 var(--colw); min-width: 0; display: flex; flex-direction: column; }
+.col.feed { flex-basis: calc(var(--colw) - 16px); }
+.col-h { height: 44px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.col-h b { font: 600 16px var(--font-display); letter-spacing: .02em; }
+.col-h span { font-size: 11px; color: var(--muted); }
+.col-body { flex: 1; display: flex; flex-direction: column; }
+.pair { flex: 1; display: flex; flex-direction: column; position: relative; }
+.slot { flex: 1; display: flex; align-items: center; position: relative; padding-block: 5px; }
+
+/* connectors */
+.slot.out::after { content: ""; position: absolute; right: calc(var(--gap) / -2); top: 50%; width: calc(var(--gap) / 2); border-top: 1px solid var(--wire); }
+.pair > .slot.out:first-child::after { top: 50%; bottom: 0; border-right: 1px solid var(--wire); }
+.pair > .slot.out:last-child::after { top: 0; bottom: 50%; border-top: 0; border-bottom: 1px solid var(--wire); border-right: 1px solid var(--wire); }
+.feed .slot.out::after { right: calc(var(--gap) * -1); width: var(--gap); }
+.slot.in::before { content: ""; position: absolute; left: calc(var(--gap) / -2); top: 50%; width: calc(var(--gap) / 2); border-top: 1px solid var(--wire); }
+
+/* actual results */
+.set { width: 26px; height: 22px; padding: 0; display: grid; place-items: center; border-radius: 5px; border: 1.5px solid #4a515b; background: var(--panel); color: var(--muted); font: 700 14px/1 var(--font-body); cursor: pointer; transition: background .12s, transform .12s; }
+.set:hover { border-color: #8f949c; color: var(--fg); background: #2c3138; transform: scale(1.08); }
+.set:active { transform: scale(.95); }
+@media (prefers-reduced-motion: reduce) { .set { transition: none; } .set:hover, .set:active { transform: none; } }
+.set.on { background: #4fbf6a; border-color: #4fbf6a; color: #10140f; box-shadow: 0 0 0 2px rgba(79,191,106,.3); }
+.m.done .r.lose .set { opacity: .45; }
+.set:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.m.done { border-color: #4fbf6a; }
+.m.done .r.win { background: rgba(79,191,106,.12); }
+.m.done .r.win .pct { color: #4fbf6a; }
+.badge.res { color: #4fbf6a; border-color: rgba(79,191,106,.4); }
+.resbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--muted); font-size: 13px; }
+.resbar b { color: #4fbf6a; }
+.resbar button { font: 600 12px var(--font-body); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+.resbar button.warn { border-color: var(--gold); color: var(--gold); }
+
+.r.tbd .name { color: var(--muted); font-weight: 400; font-style: italic; }
+.r.open .name { color: var(--cc); }
+.place.tbd .nm { color: var(--muted); }
+
+/* model selector */
+.modebar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.mode-lbl { font: 600 13px var(--font-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.modes { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+.mode-btn { font: 600 14px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 6px; padding: 6px 16px; cursor: pointer; }
+.mode-btn:hover { color: var(--fg); }
+.mode-btn[aria-pressed="true"] { background: var(--gold); color: #15120c; }
+.mode-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.mode-desc { color: var(--muted); font-size: 13px; }
+.mode-desc b { color: var(--fg); }
+.steps > div.off { opacity: .35; }
+.steps > div.off h4::after { content: " · not used in this mode"; color: var(--muted); font-weight: 400; }
+
+/* follow a player */
+.r[data-p], .place[data-p] { cursor: pointer; }
+.r[data-p]:hover .name { text-decoration: underline; text-underline-offset: 2px; }
+.slot.adv::after, .slot.from::before { border-color: var(--gold) !important; border-width: 2px !important; z-index: 1; }
+.pair > .slot.adv:first-child::after { border-bottom: 0 !important; border-left: 0 !important; }
+.pair > .slot.adv:last-child::after { border-top: 0 !important; border-left: 0 !important; }
+.slot.adv:not(.pair > .slot)::after { border-right: 0 !important; border-bottom: 0 !important; }
+body.sel .m { opacity: .3; transition: opacity .15s; }
+body.sel .m.hl { opacity: 1; box-shadow: 0 0 0 2px var(--gold); }
+body.sel .r.me { background: rgba(255,189,10,.16); }
+body.sel .place:not(.me) { opacity: .45; }
+.follow { display: flex; align-items: center; gap: 10px; background: var(--gold-dim); border: 1px solid var(--gold); border-radius: 8px; padding: 8px 12px; position: sticky; top: 8px; z-index: 5; }
+.follow b { color: var(--gold); }
+.follow button { margin-left: auto; font: 600 13px var(--font-body); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.follow button:focus-visible, .r[data-p]:focus-visible, .place[data-p]:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+@media (prefers-reduced-motion: reduce) { body.sel .m { transition: none; } }
+
+/* match card */
+.m { width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; position: relative; }
+.m.gf { border-color: var(--gold); }
+.m.flip { border-color: color-mix(in srgb, var(--gold) 55%, var(--line)); }
+.r { display: grid; grid-template-columns: 22px auto minmax(0, 1fr) auto 34px 26px; align-items: center; gap: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; }
+.r + .r { border-top: 1px solid rgba(255,255,255,.05); }
+.seed { color: var(--muted); font-size: 11px; text-align: right; }
+.icons { display: flex; }
+.ico { width: 18px; height: 18px; border-radius: 3px; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.icons .ico + .ico { margin-left: 2px; }
+.icons .ico.spec + .ico.spec { margin-left: -5px; }
+.name { color: var(--cc); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec { font-size: 11px; color: var(--muted); }
+.pct { text-align: right; font-size: 12px; color: var(--muted); }
+.r.win { background: rgba(255,189,10,.06); }
+.r.win .pct { color: var(--gold); font-weight: 600; }
+.r.lose .name, .r.lose .icons { opacity: .42; }
+.tag { position: absolute; top: 0; right: 0; transform: translateY(-50%); }
+.badges { display: flex; gap: 4px; padding: 0 8px 4px; font-size: 10px; color: var(--muted); }
+.badge { border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+.badge.flip { color: var(--gold); border-color: var(--gold-dim); }
+.feed .m { opacity: .9; }
+.feed .m + .m { margin-top: 6px; }
+.feed .slot { flex-direction: column; justify-content: center; align-items: stretch; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
+.legend .badge { margin-right: 4px; }
+.src { color: var(--muted); font-size: 13px; margin: 0; max-width: 90ch; }
+.src a { color: var(--gold); }
+
+/* formula */
+.formula { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 14px; }
+.formula h2 { margin: 0; font: 600 20px var(--font-display); }
+.formula h4 { margin: 0 0 6px; font: 600 15px var(--font-display); color: var(--gold); letter-spacing: .02em; }
+.formula p { margin: 0; color: var(--muted); max-width: 85ch; font-size: 13px; }
+.eq { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 13px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; overflow-x: auto; white-space: pre; line-height: 1.6; color: var(--fg); }
+.eq .c { color: var(--muted); }
+.steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.steps > div { min-width: 0; display: grid; gap: 6px; align-content: start; }
+.ex { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.ex th, .ex td { padding: 3px 12px 3px 0; text-align: left; }
+.ex th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.ex td.g { color: var(--gold); font-weight: 600; }
+</style>
+
+<div class="wrap">
+  <h1><small>The Forever Open · Finals</small>Predicted bracket</h1>
+  <p class="sub">Every match predicted from Swiss qualifier data. Pick a model below to see how the bracket changes: class matchups only, spec matchups, or spec matchups plus each player's own record (the small W-L next to a name). The full formula is under the brackets. Percentages are the chance to win the series: Bo3 upper, Bo1 lower, Bo5 grand final. On narrower screens, scroll sideways to follow each bracket.</p>
+  <div class="modebar">
+    <span class="mode-lbl">Prediction based on</span>
+    <div class="modes" id="modes" role="group" aria-label="Prediction based on">
+      <button type="button" class="mode-btn" id="mode-none" data-mode="none" aria-pressed="false">No prediction</button>
+      <button type="button" class="mode-btn" id="mode-class" data-mode="class" aria-pressed="false">Class</button>
+      <button type="button" class="mode-btn" id="mode-spec" data-mode="spec" aria-pressed="false">Spec</button>
+      <button type="button" class="mode-btn" id="mode-player" data-mode="player" aria-pressed="true">Player</button>
+    </div>
+    <span class="mode-desc" id="mode-desc"></span>
+  </div>
+  <div class="podium" id="podium"></div>
+  <div class="resbar"><span>Click a name to follow that player. Tick <span class="set" style="display:inline-grid;cursor:default;vertical-align:middle">✓</span> next to a player to mark them as the real winner; everything after it re-predicts.</span><span id="res-count"></span><button type="button" id="res-reset" hidden>Reset results</button></div>
+  <div class="follow" id="follow" hidden><span>Following <b id="follow-name"></b></span><span id="follow-sum" class="hint"></span><button type="button" id="follow-clear">Clear</button></div>
+  <div class="panel"><h2>Upper bracket <span>Bo3 · winners drop to the lower bracket on a loss</span></h2><div class="scroll"><div class="tree" id="upper"></div></div></div>
+  <div class="panel"><h2>Lower bracket <span>Bo1 · one more loss and you're out</span></h2><div class="scroll"><div class="tree" id="lower"></div></div></div>
+  <div class="formula" id="formula">
+    <h2>How each match is predicted</h2>
+    <div class="steps">
+      <div data-step="class spec player">
+        <h4>1 · Class / spec odds</h4>
+        <div class="eq"><span class="c">// W = wins (ties count ½), N = games, all from the Swiss</span>
+v_class = (W + 5) / (N + 10)              <span class="c">A's class vs B's class</span>
+v_cs    = (W + 10·v_class) / (N + 10)     <span class="c">A's class vs B's spec</span>
+v(A,B)  = (W + 10·v_cs) / (N + 10)        <span class="c">A's spec vs B's spec</span>
+
+p_class = ½ · [ v_class(A,B) + 1 − v_class(B,A) ]   <span class="c">Class mode stops here</span>
+p_spec  = ½ · [ v(A,B) + 1 − v(B,A) ]               <span class="c">Spec mode stops here</span></div>
+        <p>Each level is pulled toward the broader one, so a spec matchup with only a few games leans on the class numbers. Both players' views are averaged. Mirror specs are set to 50%.</p>
+      </div>
+      <div data-step="player">
+        <h4>2 · Player adjustment</h4>
+        <div class="eq">Δ = (r − p_ref) · n² / (n² + 8)
+
+p = p_spec + Δ_A − Δ_B        <span class="c">clamped to 3–97%</span></div>
+        <p>r = the player's own Swiss win rate against the opponent's spec (or class, if they never met that spec), n = how many of those games they played, p_ref = their spec odds (p_spec for A, 1 − p_spec for B). The n²/(n²+8) weight makes one game count a little and several games count a lot. A player with no games gets Δ = 0, so they don't water down the other player's record.</p>
+        <table class="ex"><tr><th>Record</th><th>Weight</th><th>Shift at 50% odds</th></tr>
+          <tr><td>1-0</td><td>0.11</td><td class="g">+5.6 pts</td></tr>
+          <tr><td>2-0</td><td>0.33</td><td class="g">+16.7 pts</td></tr>
+          <tr><td>3-0</td><td>0.53</td><td class="g">+26.5 pts</td></tr>
+          <tr><td>2-1</td><td>0.53</td><td class="g">+8.8 pts</td></tr></table>
+      </div>
+      <div data-step="class spec player">
+        <h4>3 · Series odds</h4>
+        <div class="eq">Bo1 = p
+Bo3 = p² · (3 − 2p)
+Bo5 = p³ · (10 − 15p + 6p²)</div>
+        <p>The single-game chance p is turned into the chance to win the series. The percentages on the bracket are these series odds.</p>
+      </div>
+      <div data-step="class spec player">
+        <h4>4 · Picking the winner</h4>
+        <p>The player above 50% advances. An exact 50% (same spec, same records) goes to the higher seed. Winners and losers then move through the real double-elimination bracket, so later rounds use the predicted players.</p>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <span id="legend-flip-wrap"><span class="badge flip">flip</span><span id="legend-flip"></span></span>
+    <span><span class="badge">mirror</span>same class or spec, higher seed advances</span>
+    <span><span class="badge">low data</span>under 10 games between these specs</span>
+    <span>– never met this matchup in the Swiss</span>
+  </div>
+  <p class="src">Byes and auto-advances are not shown as matches. Data: <a href="https://raider.io/events/the-forever-open/brackets/finals" target="_blank" rel="noopener">raider.io finals bracket</a> and all Swiss qualifier pods.</p>
+</div>
+
+<script>
+const RAW = "https://raw.githubusercontent.com/orourkek/Wow-Icons/master/images/";
+// ---- prediction model (runs in the page) ----
+const D = {"SP":["Demo Warlock","Disc Priest","Ret Paladin","Resto Druid","Survival Hunter","Enhancement Shaman","BM Hunter","Frost Mage","Sub Rogue","Resto/Enhancement Shaman","Arcane Mage","Feral Druid","Arms Warrior","Fury Warrior","Prot Warrior"],"CL":["druid","hunter","mage","paladin","priest","rogue","shaman","warlock","warrior"],"P":[["Korleone",1,7,0,"demonology"],["Psychapeute",2,4,1,"discipline"],["Gomzy",3,3,2,"retribution"],["Lamelol",4,3,2,"retribution"],["Sodapoppin",22,0,3,"restoration"],["Dakkroth",12,4,1,"discipline"],["Neepzen",27,7,0,"demonology"],["Fvp",9,1,4,"survival"],["Jázggz",5,7,0,"demonology"],["Nieze",14,4,1,"discipline"],["Cdewx",10,6,5,"enhancement"],["Hardfight",26,1,6,"beastmastery"],["Skeelz",13,6,5,"enhancement"],["Yonezka",25,2,7,"frost"],["Pshero",15,5,8,"subtlety"],["Reed",16,3,2,"retribution"],["Justwoo",17,5,8,"subtlety"],["Azzu",18,3,2,"retribution"],["Lash",23,4,1,"discipline"],["Warlockguy",20,7,0,"demonology"],["Desmondhume",7,0,3,"restoration"],["Luuxiå",8,6,9,"restoration"],["Danmark",28,1,6,"beastmastery"],["Chopmaster",19,5,8,"subtlety"],["Ryhaz",11,1,6,"beastmastery"],["Allyana",6,2,10,"arcane"],["Venruk",21,2,7,"frost"],["Minpojke",24,0,3,"restoration"],["Kyroo",29,5,8,"subtlety"],["Teleporter",30,2,10,"arcane"],["Oddwaffletv",31,6,9,"restoration"],["Snupy",32,0,11,"feral"],["Disruptive",33,8,12,"arms"],["Fracc",34,8,13,"fury"],["Mag",35,8,14,"protection"],["Bcw",36,8,12,"arms"]],
+"CC":[[5,1,143.5,243],[1,5,99.5,243],[3,5,71.5,114],[5,3,42.5,114],[4,0,49.5,97],[0,4,47.5,97],[7,3,58,117],[3,7,59,117],[7,2,47,63],[2,7,16,63],[7,5,85,129],[5,7,44,129],[7,6,84,166],[6,7,82,166],[4,8,60,82],[8,4,22,82],[4,3,56.5,149],[3,4,92.5,149],[6,1,136,353],[1,6,217,353],[4,6,101.5,238],[6,4,136.5,238],[1,8,52,101],[8,1,49,101],[0,6,33,114],[6,0,81,114],[2,0,20,46],[0,2,26,46],[1,4,133,302],[4,1,169,302],[6,5,81,221],[5,6,140,221],[1,3,56,170],[3,1,114,170],[4,5,143.5,196],[5,4,52.5,196],[3,6,102,148],[6,3,46,148],[2,4,39.5,99],[4,2,59.5,99],[5,8,38,69],[8,5,31,69],[7,0,51,84],[0,7,33,84],[1,7,74,191],[7,1,117,191],[6,8,40.5,93],[8,6,52.5,93],[4,7,61,160],[7,4,99,160],[5,2,29,89],[2,5,60,89],[5,0,48,92],[0,5,44,92],[3,2,29,64],[2,3,35,64],[0,8,31,46],[8,0,15,46],[1,2,62,118],[2,1,56,118],[1,0,57,115],[0,1,58,115],[7,8,43,60],[8,7,17,60],[2,6,50,103],[6,2,53,103],[8,3,9,50],[3,8,41,50],[0,3,15.5,52],[3,0,36.5,52],[8,2,10,30],[2,8,20,30],[3,3,20,40],[4,4,5,10],[5,5,5,10],[6,6,8,16],[7,7,18,36],[1,1,6,12],[8,8,2,4],[0,0,2,4],[2,2,1,2]],
+"CS":[[5,4,45,82],[1,8,79.5,208],[3,8,61.5,100],[5,2,33,87],[4,11,23,38],[0,1,43.5,91],[7,2,43,92],[3,0,50,107],[2,0,14,58],[7,8,77,116],[5,0,35,114],[7,5,79,156],[4,14,16,21],[8,1,20,73],[4,2,36.5,111],[3,1,86.5,140],[6,4,26.5,107],[1,5,207,328],[4,5,97,226],[6,1,123.5,217],[1,12,26,56],[8,6,22,53],[0,5,33,111],[6,3,32.5,46],[6,6,77,187],[2,3,6,19],[0,10,4,8],[1,1,118,274],[4,4,59,93],[5,5,134,208],[1,2,40,129],[3,4,46,62],[4,8,127.5,173],[5,1,43.5,180],[4,6,81,168],[3,5,95,139],[6,2,30,107],[2,1,34.5,91],[4,10,6,14],[5,6,77,126],[5,14,10,19],[6,8,69,197],[7,3,20,35],[0,0,25,73],[1,0,65,175],[7,4,39,52],[6,12,22,49],[8,5,50.5,88],[1,14,13,25],[8,4,18,35],[4,0,52,147],[7,1,91,150],[5,10,3,11],[2,8,50,76],[5,3,14,36],[0,8,41,89],[2,2,24,48],[0,12,21,28],[8,3,4,12],[2,6,28,64],[6,0,65,146],[1,3,22,39],[0,4,20,38],[7,12,22,29],[2,5,48,98],[6,10,5,13],[7,6,58,107],[6,14,9,23],[7,10,5,8],[8,2,8,44],[3,12,26,29],[1,10,7,16],[4,3,17,43],[7,7,39,51],[3,11,20.5,24],[3,6,52,84],[0,14,7,12],[8,8,29,65],[6,11,35,52],[1,7,49,95],[2,4,12,33],[0,6,31,66],[5,7,25,74],[7,11,22,36],[0,2,10.5,39],[3,3,7,17],[5,11,24,39],[7,14,9,15],[4,7,50.5,80],[1,11,27,59],[8,7,10,27],[2,14,4,6],[3,14,10,12],[3,7,24,51],[7,13,12,16],[8,0,12,51],[5,13,10,15],[6,7,46,86],[6,13,9.5,21],[4,13,14,17],[0,7,21,35],[5,12,18,35],[3,2,19,38],[2,12,11,16],[8,11,8,25],[1,9,2,12],[0,9,0,1],[5,9,1,5],[3,9,5,6],[4,12,30,44],[4,9,1,7],[2,11,12,20],[1,13,13,20],[4,1,5,10],[2,13,5,8],[3,13,5,9],[3,10,4,9],[6,5,6,12],[7,0,18,36],[0,13,3,6],[1,6,2,5],[6,9,1,3],[7,9,2,5],[8,9,1,3],[8,13,0,1],[8,14,2,2],[2,9,0,2],[0,11,1,2],[1,4,2,5],[8,10,0,2],[8,12,0,1],[5,8,4,7],[0,3,0,1],[2,7,1,1],[2,10,0,1]],
+"SS":[[8,4,43,74],[4,8,31,74],[2,8,46,76],[8,2,30,76],[1,11,22,37],[11,1,15,37],[0,2,43,84],[2,0,41,84],[0,8,71,103],[8,0,32,103],[1,14,14,18],[14,1,4,18],[1,2,34.5,104],[2,1,69.5,104],[5,4,20.5,97],[4,5,76.5,97],[1,5,89,206],[5,1,117,206],[6,12,14,26],[12,6,12,26],[3,5,13.5,44],[5,3,30.5,44],[6,5,104,176],[5,6,72,176],[10,3,1,2],[3,10,1,2],[4,1,30,86],[1,4,56,86],[4,2,9,45],[2,4,36,45],[1,8,120.5,157],[8,1,36.5,157],[6,1,76,151],[1,6,75,151],[2,5,70,99],[5,2,29,99],[10,1,7,12],[1,10,5,12],[6,8,39,107],[8,6,68,107],[5,8,62,184],[8,5,122,184],[0,3,20,31],[3,0,11,31],[4,0,13,50],[0,4,37,50],[5,12,20,46],[12,5,26,46],[4,14,3,7],[14,4,4,7],[1,0,51,139],[0,1,88,139],[8,10,3,11],[10,8,8,11],[8,3,14,34],[3,8,20,34],[3,12,3,5],[12,3,2,5],[0,5,77,139],[5,0,62,139],[4,3,10,16],[3,4,6,16],[10,5,8,13],[5,10,5,13],[6,0,41,96],[0,6,55,96],[5,14,8,22],[14,5,14,22],[12,2,2,25],[2,12,23,25],[14,6,7,17],[6,14,10,17],[6,10,6,11],[10,6,5,11],[12,4,11,21],[4,12,10,21],[3,1,22,38],[1,3,16,38],[0,7,37,48],[7,0,11,48],[2,6,42,66],[6,2,24,66],[3,14,4,6],[14,3,2,6],[8,14,9,17],[14,8,8,17],[11,5,17,51],[5,11,34,51],[4,7,20,29],[7,4,9,29],[6,3,11,21],[3,6,10,21],[7,8,39,61],[8,7,22,61],[3,2,8,15],[2,3,7,15],[8,11,24,38],[11,8,14,38],[4,11,8,18],[11,4,10,18],[14,7,2,6],[7,14,4,6],[2,7,19,36],[7,2,17,36],[7,1,25.5,74],[1,7,48.5,74],[0,13,11,14],[13,0,3,14],[8,13,10,14],[13,8,4,14],[7,5,38,81],[5,7,43,81],[5,13,9.5,20],[13,5,10.5,20],[6,7,24,46],[7,6,22,46],[13,1,3,15],[1,13,12,15],[3,7,12,16],[7,3,4,16],[12,8,17,34],[8,12,17,34],[7,12,10,15],[12,7,5,15],[11,12,14,17],[12,11,3,17],[11,0,10,31],[0,11,21,31],[4,9,0,5],[9,4,5,5],[3,9,0,1],[9,3,1,1],[6,11,17,34],[11,6,17,34],[9,8,4,5],[8,9,1,5],[9,2,0,5],[2,9,5,5],[1,12,27,40],[12,1,13,40],[0,12,20,25],[12,0,5,25],[1,9,1,6],[9,1,5,6],[11,7,6,15],[7,11,9,15],[2,14,8,10],[14,2,2,10],[2,11,14.5,17],[11,2,2.5,17],[1,1,5,10],[14,0,4,12],[0,14,8,12],[6,13,7,10],[13,6,3,10],[7,13,3,6],[13,7,3,6],[2,13,5,9],[13,2,4,9],[10,4,3,4],[4,10,1,4],[0,10,5,7],[10,0,2,7],[2,10,4,8],[10,2,4,8],[5,5,5,10],[0,0,18,36],[3,13,1,1],[13,3,0,1],[9,5,1,1],[5,9,0,1],[9,9,1,2],[0,9,2,5],[9,0,3,5],[9,12,2,2],[12,9,0,2],[2,2,18,36],[6,9,2,5],[9,6,3,5],[4,13,4,7],[13,4,3,7],[14,13,0,1],[13,14,1,1],[7,9,0,2],[9,7,2,2],[11,14,2,4],[14,11,2,4],[13,11,3,4],[11,13,1,4],[9,13,0,1],[13,9,1,1],[12,10,0,1],[10,12,1,1],[12,14,1,1],[14,12,0,1],[8,8,3,6],[11,3,0,1],[3,11,1,1],[11,10,1,3],[10,11,2,3],[13,10,0,1],[10,13,1,1],[6,4,1,2],[4,6,1,2],[4,4,1,2],[6,6,1,2],[10,7,1,1],[7,10,0,1]],
+"PS":[[28,4,1,1],[18,11,1,1],[34,1,1,2],[28,0,1,1],[18,10,1,1],[28,1,1,2],[34,4,1,1],[18,4,1,1],[18,14,1,1],[28,2,1,1],[28,6,1,1],[18,8,2,2],[34,5,1,1],[34,6,1,1],[5,0,2,2],[5,2,1,1],[5,5,1,1],[33,0,1,2],[33,8,1,1],[33,5,2,2],[33,1,1,1],[32,6,2,2],[2,7,1,1],[32,2,0,1],[2,12,1,1],[2,4,1,1],[32,5,1,1],[2,9,1,1],[32,1,1,1],[2,6,1,1],[32,8,1,1],[2,1,1,1],[1,5,2,2],[1,2,1,1],[1,11,1,1],[1,6,1,1],[1,1,1,1],[27,1,2,2],[27,4,1,1],[27,2,1,1],[27,0,0,1],[25,8,1,1],[20,5,1,1],[20,2,1,1],[25,1,1,1],[25,4,1,1],[20,0,1,1],[20,10,1,1],[25,3,0,1],[20,7,1,1],[25,0,1,1],[20,1,0.5,1],[25,2,1,1],[10,7,1,1],[10,0,1,1],[10,1,2,2],[10,5,1,1],[19,1,1,1],[19,5,1,1],[19,2,1,1],[19,6,1,1],[19,8,1,1],[19,0,3,3],[14,5,1,1],[14,7,1,1],[14,3,1,1],[14,6,1,1],[14,2,1,1],[14,0,1,1],[30,5,1,1],[30,9,1,1],[35,1,2,2],[35,5,1,1],[9,7,1,1],[9,0,2,2],[35,8,1,1],[35,0,0,1],[9,8,1,1],[35,6,1,1],[9,6,1,1],[13,5,1,1],[13,6,1,1],[13,8,1,1],[13,0,1,1],[15,2,2,2],[17,2,2,2],[3,2,3,3],[2,2,1,1],[30,8,1,1],[30,7,1,1],[30,1,1,1],[30,0,0,1],[17,0,1,1],[17,4,1,1],[17,5,1,1],[17,8,1,1],[17,12,1,1],[17,1,1,1],[31,0,2,2],[31,1,1,1],[31,5,0,1],[31,8,1,1],[31,4,1,1],[26,5,1,1],[26,8,1,1],[26,1,1,1],[26,0,0,1],[26,12,1,1],[26,6,1,1],[22,12,1,1],[22,7,1,1],[22,0,1,1],[22,8,1,1],[22,2,0,1],[22,1,1,1],[12,1,1,1],[12,4,1,1],[12,2,1,1],[12,11,2,2],[12,0,1,1],[8,4,1,1],[8,8,1,1],[8,2,1,1],[8,1,1,1],[8,6,1,1],[8,0,3,3],[35,14,1,1],[3,4,1,1],[29,5,2,2],[29,8,1,1],[3,5,2,2],[3,10,1,1],[29,2,0,1],[3,1,1,1],[29,1,1,1],[29,13,1,1],[21,6,2,3],[11,1,1,1],[21,8,1,1],[21,0,1,1],[11,0,1,1],[11,8,1,1],[21,1,1,1],[11,11,1,1],[11,9,1,1],[0,8,1,1],[0,1,2,2],[0,7,1,1],[0,2,2,2],[4,4,1,1],[4,8,1,1],[4,0,3,3],[4,2,1,1],[6,1,1,1],[6,4,1,1],[6,5,1,1],[6,0,3,3],[6,10,1,1],[23,11,1,1],[23,6,1,1],[16,2,1,1],[23,1,1,1],[16,0,1,1],[23,2,1,1],[16,11,1,1],[23,0,1,1],[23,8,0,1],[16,8,1,1],[0,0,1,1],[7,8,1,1],[7,0,2,2],[7,6,1,1],[15,14,1,1],[24,8,1,1],[15,9,1,1],[24,1,1,1],[24,5,1,1],[15,4,1,1],[15,8,1,1],[24,0,2,2],[15,1,1,1],[24,2,0,1],[15,6,1,1],[29,7,1,1]],
+"PC":[[28,1,2,2],[18,0,1,1],[34,4,1,2],[28,7,1,1],[18,2,1,1],[34,5,1,1],[28,4,1,2],[34,1,2,2],[18,1,1,1],[18,8,1,1],[28,3,1,1],[18,5,2,2],[34,6,1,1],[5,2,1,1],[5,3,2,2],[5,7,2,2],[5,6,1,1],[33,7,1,2],[33,5,1,1],[33,6,2,2],[33,4,1,1],[32,1,2,2],[2,2,1,1],[32,3,0,1],[2,8,1,1],[2,1,2,2],[32,6,1,1],[2,6,1,1],[32,4,1,1],[32,5,1,1],[2,4,1,1],[1,6,2,2],[1,3,1,1],[1,0,1,1],[1,1,1,1],[1,4,1,1],[27,4,2,2],[27,1,1,1],[27,3,1,1],[27,5,1,1],[27,7,0,1],[25,5,1,1],[20,6,1,1],[20,3,1,1],[25,4,1,1],[25,1,1,1],[20,7,1,1],[20,2,2,2],[25,0,0,1],[25,7,1,1],[20,4,0.5,1],[25,3,1,1],[10,2,1,1],[10,7,1,1],[10,4,2,2],[10,3,1,1],[10,6,1,1],[19,4,1,1],[19,6,1,1],[19,3,1,1],[19,1,1,1],[19,5,1,1],[19,7,3,3],[14,6,1,1],[14,2,1,1],[14,0,1,1],[14,1,1,1],[14,3,1,1],[14,7,1,1],[30,6,2,2],[35,4,2,2],[9,3,1,1],[35,6,1,1],[9,2,1,1],[9,7,2,2],[35,5,1,1],[35,7,0,1],[9,5,1,1],[35,1,1,1],[9,1,1,1],[13,5,2,2],[13,6,1,1],[13,4,1,1],[13,1,1,1],[13,7,1,1],[15,3,2,2],[17,3,2,2],[3,3,3,3],[2,3,1,1],[30,5,1,1],[30,2,1,1],[30,4,1,1],[30,1,1,1],[30,3,1,1],[30,7,0,1],[17,7,1,1],[17,1,1,1],[17,6,1,1],[17,5,1,1],[17,8,1,1],[17,4,1,1],[31,7,2,2],[31,4,1,1],[31,6,0,1],[31,5,1,1],[31,1,1,1],[31,0,1,1],[26,6,1,1],[26,5,1,1],[26,4,1,1],[26,7,0,1],[26,8,1,1],[26,1,1,1],[22,8,1,1],[22,2,1,1],[22,7,1,1],[22,5,1,1],[22,3,0,1],[22,4,1,1],[12,4,1,1],[12,1,1,1],[12,3,1,1],[12,0,2,2],[12,7,1,1],[8,1,2,2],[8,5,1,1],[8,3,1,1],[8,4,1,1],[8,7,3,3],[35,8,1,1],[3,1,1,1],[29,6,2,2],[29,5,1,1],[3,6,2,2],[3,2,1,1],[29,3,0,1],[3,4,1,1],[29,4,1,1],[29,8,1,1],[11,3,1,1],[21,1,2,3],[11,4,1,1],[21,5,1,1],[21,7,1,1],[11,7,1,1],[11,5,1,1],[21,4,1,1],[11,0,1,1],[11,6,1,1],[0,5,1,1],[0,4,2,2],[0,2,1,1],[0,3,2,2],[4,1,1,1],[4,5,1,1],[4,7,3,3],[4,3,1,1],[6,4,1,1],[6,3,1,1],[6,1,1,1],[6,6,1,1],[6,7,3,3],[6,2,1,1],[16,6,1,1],[23,0,1,1],[23,1,1,1],[16,3,1,1],[23,4,1,1],[16,7,1,1],[23,3,1,1],[16,4,1,1],[16,0,1,1],[23,7,1,1],[23,5,0,1],[16,5,1,1],[0,7,1,1],[7,5,1,1],[7,4,1,1],[7,7,2,2],[7,1,1,1],[7,3,1,1],[15,8,1,1],[24,5,1,1],[15,6,1,1],[24,4,1,1],[24,6,1,1],[15,1,2,2],[15,5,1,1],[24,7,2,2],[15,4,1,1],[24,3,0,1],[29,2,1,1]],
+"U1":[["Korleone",null],["Disruptive","Snupy"],["Justwoo",null],[null,"Reed"],["Fvp",null],[null,"Minpojke"],["Yonezka",null],[null,"Luuxiå"],["Jázggz",null],[null,"Danmark"],["Venruk",null],[null,"Dakkroth"],["Skeelz",null],[null,"Warlockguy"],["Kyroo","Bcw"],[null,"Lamelol"],["Gomzy",null],["Mag","Teleporter"],["Chopmaster",null],[null,"Nieze"],["Ryhaz",null],[null,"Sodapoppin"],["Neepzen",null],[null,"Allyana"],["Desmondhume",null],[null,"Hardfight"],["Lash",null],[null,"Cdewx"],["Pshero",null],[null,"Azzu"],["Oddwaffletv","Fracc"],[null,"Psychapeute"]]};
+const SPNAME = D.SP, CLS = D.CL;
+const toMap = rows => { const m = new Map(); rows.forEach(([a, b, w, n]) => m.set(a + "|" + b, [w, n])); return m; };
+const CCm = toMap(D.CC), CSm = toMap(D.CS), SSm = toMap(D.SS), PSm = toMap(D.PS), PCm = toMap(D.PC);
+const PL = {}; D.P.forEach(([name, seed, c, s, file], i) => PL[name] = { i, name, seed, c, s, cls: CLS[c], file, tuple: [name, CLS[c], file, seed] });
+const K = 10, KP = 8;
+const sh = (x, prior) => { x = x || [0, 0]; return (x[0] + K * prior) / (x[1] + K); };
+const vClass = (A, B) => sh(CCm.get(A.c + "|" + B.c), 0.5);
+const vSpec = (A, B) => { const cs = sh(CSm.get(A.c + "|" + B.s), vClass(A, B)); return sh(SSm.get(A.s + "|" + B.s), cs); };
+const pClass = (A, B) => A.c === B.c ? 0.5 : (vClass(A, B) + 1 - vClass(B, A)) / 2;
+const pSpec = (A, B) => A.s === B.s ? 0.5 : (vSpec(A, B) + 1 - vSpec(B, A)) / 2;
+const personal = (A, B) => { const s = PSm.get(A.i + "|" + B.s); if (s && s[1]) return s; const c = PCm.get(A.i + "|" + B.c); if (c && c[1]) return c; return [0, 0]; };
+const shift = (rec, ref) => { const [w, n] = rec; return n ? (w / n - ref) * n * n / (n * n + KP) : 0; };
+const pPlayer = (A, B) => { const base = pSpec(A, B); return Math.min(0.97, Math.max(0.03, base + shift(personal(A, B), base) - shift(personal(B, A), 1 - base))); };
+const MODEL = { class: pClass, spec: pSpec, player: pPlayer };
+const SIMPLER = { player: "spec", spec: "class" };
+const series = (p, g) => g >= 5 ? p ** 3 * (10 - 15 * p + 6 * p * p) : g >= 3 ? p * p * (3 - 2 * p) : p;
+
+let RESULTS = {};
+try { RESULTS = JSON.parse(localStorage.getItem("fo-results") || "{}") || {}; } catch (e) { RESULTS = {}; }
+const saveResults = () => { try { localStorage.setItem("fo-results", JSON.stringify(RESULTS)); } catch (e) {} };
+const TBD = "?";
+function simulate(mode) {
+  const res = {}, out = [];
+  const W = k => res[k] ? res[k].w : null, Lz = k => res[k] ? res[k].l : null;
+  const play = (seg, r, n, g, a, b) => {
+    const key = seg[0] + r + "." + n;
+    if (a === TBD || b === TBD) {
+      if (!a || !b) { res[key] = { w: TBD, l: null }; return; }
+      res[key] = { w: TBD, l: TBD };
+      out.push([seg, r, n, g, a === TBD ? null : PL[a].tuple, b === TBD ? null : PL[b].tuple, null, null, 0, 0, null, null, null, 0, key]);
+      return;
+    }
+    const A = a && PL[a], B = b && PL[b];
+    if (!A || !B) { res[key] = { w: A ? a : B ? b : null, l: null }; return; }
+    const actual = RESULTS[key] === a ? 0 : RESULTS[key] === b ? 1 : null;
+    if (!MODEL[mode] && actual == null) {
+      res[key] = { w: TBD, l: TBD };
+      out.push([seg, r, n, g, A.tuple, B.tuple, null, null, 0, 0, null, null, null, 0, key]);
+      return;
+    }
+    const p = MODEL[mode] ? MODEL[mode](A, B) : 0.5;
+    const w = actual != null ? actual : Math.abs(p - 0.5) < 1e-9 ? (A.seed < B.seed ? 0 : 1) : p > 0.5 ? 0 : 1;
+    res[key] = { w: w ? b : a, l: w ? a : b };
+    const mirror = mode === "class" ? A.c === B.c : A.s === B.s;
+    const games = mode === "class" ? (CCm.get(A.c + "|" + B.c) || [0, 0])[1] : (SSm.get(A.s + "|" + B.s) || [0, 0])[1];
+    const simpler = SIMPLER[mode] ? series(MODEL[SIMPLER[mode]](A, B), g) * 100 : null;
+    out.push([seg, r, n, g, A.tuple, B.tuple, series(p, g) * 100, w, games, mirror ? 1 : 0, simpler,
+      mode === "player" ? personal(A, B) : null, mode === "player" ? personal(B, A) : null, actual != null ? 1 : 0, key]);
+  };
+  const R = (n) => Array.from({ length: n }, (_, i) => i + 1);
+  D.U1.forEach(([a, b], i) => play("upper", 1, i + 1, 3, a, b));
+  for (let r = 2; r <= 5; r++) R(32 >> (r - 1)).forEach(k => play("upper", r, k, 3, W(`u${r - 1}.${2 * k - 1}`), W(`u${r - 1}.${2 * k}`)));
+  R(16).forEach(k => play("lower", 1, k, 1, Lz(`u1.${2 * k - 1}`), Lz(`u1.${2 * k}`)));
+  R(16).forEach(k => play("lower", 2, k, 1, Lz(`u2.${17 - k}`), W(`l1.${k}`)));
+  R(8).forEach(k => play("lower", 3, k, 1, W(`l2.${2 * k - 1}`), W(`l2.${2 * k}`)));
+  R(8).forEach(k => play("lower", 4, k, 1, Lz(`u3.${k}`), W(`l3.${k}`)));
+  R(4).forEach(k => play("lower", 5, k, 1, W(`l4.${2 * k - 1}`), W(`l4.${2 * k}`)));
+  R(4).forEach(k => play("lower", 6, k, 1, Lz(`u4.${5 - k}`), W(`l5.${k}`)));
+  R(2).forEach(k => play("lower", 7, k, 1, W(`l6.${2 * k - 1}`), W(`l6.${2 * k}`)));
+  play("upper", 6, 1, 3, W("u5.1"), W("u5.2"));
+  R(2).forEach(k => play("lower", 8, k, 1, Lz(`u5.${k}`), W(`l7.${k}`)));
+  play("lower", 9, 1, 1, W("l8.1"), W("l8.2"));
+  play("lower", 10, 1, 3, Lz("u6.1"), W("l9.1"));
+  play("upper", 7, 1, 5, W("u6.1"), W("l10.1"));
+  return out;
+}
+
+let M = [];
+let MODE = "player";
+const MODE_LABEL = { none: "No prediction", class: "Class", spec: "Spec", player: "Player" };
+const HYBRID = { "Luuxiå": 1, "Oddwaffletv": 1 };
+const SPECNAME = { arms:"Arms", fury:"Fury", protection:"Prot", retribution:"Ret", beastmastery:"BM", survival:"Survival", marksman:"MM",
+  subtlety:"Sub", discipline:"Disc", enhancement:"Enhancement", restoration:"Resto", demonology:"Demo", frost:"Frost", arcane:"Arcane", feral:"Feral" };
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const specLabel = p => HYBRID[p[0]] ? `Enh/Resto ${cap(p[1])}` : `${SPECNAME[p[2]]} ${cap(p[1])}`;
+const icons = p => {
+  const specs = HYBRID[p[0]] ? ["enhancement", "restoration"] : [p[2]];
+  return `<span class="icons"><img class="ico" src="${RAW}class/64/${p[1]}.png" alt="" width="18" height="18">${specs.map(s => `<img class="ico spec" src="${RAW}spec/${p[1]}/${s}.png" alt="" width="18" height="18">`).join("")}</span>`;
+};
+const recText = r => { if (!r) return `<span class="rec"></span>`; const [w, n] = r; if (!n) return `<span class="rec" title="Never met this matchup in the Swiss">–</span>`;
+  const t = w % 1 ? 1 : 0, W = Math.floor(w), L = n - W - t; return `<span class="rec" title="Swiss record in this matchup">${W}-${L}${t ? "-" + t : ""}</span>`; };
+const row = (p, pct, win, rec, key, actual) => !p ? `<div class="r tbd"><span class="seed"></span><span class="icons"></span><span class="name">TBD</span><span class="rec"></span><span class="pct"></span><span></span></div>` : `<div class="r ${win == null ? "open" : win ? "win" : "lose"}" data-p="${p[0]}" tabindex="0" role="button" style="--cc:var(--c-${p[1]})" title="${p[0]} · ${specLabel(p)} · click to follow">
+  <span class="seed">${p[3]}</span>${icons(p)}<span class="name">${p[0]}</span>${recText(rec)}<span class="pct">${actual ? (win ? "Won" : "Lost") : pct == null ? "" : Math.round(pct) + "%"}</span>${!key ? "<span></span>" : `<button type="button" class="set ${actual && win ? "on" : ""}" data-set="${key}|${p[0]}" title="${actual && win ? "Clear this result" : "Mark " + p[0] + " as the winner"}" aria-label="${actual && win ? "Clear result" : "Mark " + p[0] + " as winner"}">✓</button>`}</div>`;
+
+const get = (seg, r, n) => M.find(m => m[0] === seg && m[1] === r && m[2] === n);
+const card = (m, extra = "") => {
+  if (!m) return "";
+  const [, , , , A, B, pA, w, n, mirror, base, recA, recB, actual, key] = m;
+  const flipped = !actual && pA != null && base != null && Math.abs(base - 50) > 0.05 && (base > 50) !== (w === 0);
+  const b = [];
+  if (flipped) b.push(`<span class="badge flip" title="${MODE_LABEL[SIMPLER[MODE]]} model alone: ${Math.round(w === 0 ? base : 100 - base)}% for this pick">flip</span>`);
+  if (actual) b.push(`<span class="badge res">result</span>`);
+  else if (mirror && Math.abs(pA - 50) < 0.05) b.push(`<span class="badge">mirror</span>`);
+  else if (pA != null && !mirror && n < 10) b.push(`<span class="badge" title="${n} games between these ${MODE === "class" ? "classes" : "specs"}">low data</span>`);
+  return `<div class="m ${extra} ${flipped ? "flip" : ""} ${actual ? "done" : ""}" data-ps="${A ? A[0] : ""}|${B ? B[0] : ""}" data-w="${w == null ? "" : w === 0 ? A[0] : B[0]}">${row(A, pA, w == null ? null : w === 0, recA, A && B ? key : null, actual)}${row(B, pA == null ? null : 100 - pA, w == null ? null : w === 1, recB, A && B ? key : null, actual)}${b.length ? `<div class="badges">${b.join("")}</div>` : ""}</div>`;
+};
+
+// col spec: {title, sub, slots:[html], pairs:bool (next column halves), feedIn:bool, out:bool, feed:bool}
+const column = c => {
+  const slot = (h, i) => `<div class="slot ${c.out && (h || !c.feed) ? "out" : ""} ${c.in ? "in" : ""}">${h}</div>`;
+  let body = "";
+  if (c.pairs) for (let i = 0; i < c.slots.length; i += 2) body += `<div class="pair join">${slot(c.slots[i], i)}${slot(c.slots[i + 1], i + 1)}</div>`;
+  else body = c.slots.map(slot).join("");
+  return `<div class="col ${c.feed ? "feed" : ""}"><div class="col-h"><b>${c.title}</b><span>${c.sub || ""}</span></div><div class="col-body">${body}</div></div>`;
+};
+const range = n => Array.from({ length: n }, (_, i) => i + 1);
+
+function render() {
+M = simulate(MODE);
+// Upper: R1 feeders (16 slots, R2 match k fed by R1 2k-1, 2k), R2 16 → R3 8 → R4 4 → R5 2 → R6 1 → GF
+const upperCols = [
+  { title: "Round 1", sub: "Only 4 real matches, rest are byes", feed: true, out: true, slots: range(16).map(k => card(get("upper", 1, 2 * k - 1)) + card(get("upper", 1, 2 * k))) },
+  { title: "Round 2", sub: "Bo3", out: true, pairs: true, slots: range(16).map(k => card(get("upper", 2, k))) },
+  { title: "Round 3", sub: "Bo3", in: true, out: true, pairs: true, slots: range(8).map(k => card(get("upper", 3, k))) },
+  { title: "Quarterfinals", sub: "Bo3", in: true, out: true, pairs: true, slots: range(4).map(k => card(get("upper", 4, k))) },
+  { title: "Semifinals", sub: "Bo3", in: true, out: true, pairs: true, slots: range(2).map(k => card(get("upper", 5, k))) },
+  { title: "Upper final", sub: "Bo3", in: true, out: true, slots: [card(get("upper", 6, 1))] },
+  { title: "Grand final", sub: "Bo5 · vs lower bracket winner", in: true, slots: [card(get("upper", 7, 1), "gf")] }
+];
+document.getElementById("upper").innerHTML = upperCols.map(column).join("");
+
+// Lower: R2 feeders (8 slots, L3 match k fed by L2 2k-1, 2k), L3 8 → L4 8 → L5 4 → L6 4 → L7 2 → L8 2 → L9 1 → L10 1
+const L = (r, n) => range(n).map(k => card(get("lower", r, k)));
+const lowerCols = [
+  { title: "Lower round 2", sub: "Only 4 real matches", feed: true, out: true, slots: range(8).map(k => card(get("lower", 2, 2 * k - 1)) + card(get("lower", 2, 2 * k))) },
+  { title: "Lower round 3", sub: "Bo1", out: true, slots: L(3, 8) },
+  { title: "Lower round 4", sub: "Bo1 · vs upper R3 losers", in: true, out: true, pairs: true, slots: L(4, 8) },
+  { title: "Lower round 5", sub: "Bo1", in: true, out: true, slots: L(5, 4) },
+  { title: "Lower round 6", sub: "Bo1 · vs upper QF losers", in: true, out: true, pairs: true, slots: L(6, 4) },
+  { title: "Lower round 7", sub: "Bo1", in: true, out: true, slots: L(7, 2) },
+  { title: "Lower round 8", sub: "Bo1 · vs upper SF losers", in: true, out: true, pairs: true, slots: L(8, 2) },
+  { title: "Lower semifinal", sub: "Bo1", in: true, out: true, slots: L(9, 1) },
+  { title: "Lower final", sub: "Bo3 · vs upper final loser", in: true, slots: L(10, 1) }
+];
+document.getElementById("lower").innerHTML = lowerCols.map(column).join("");
+
+// podium
+const find = (seg, r) => M.find(m => m[0] === seg && m[1] === r);
+const W = m => m && m[7] != null ? m[4 + m[7]] : null, Lo = m => m && m[7] != null ? m[5 - m[7]] : null;
+const gf = find("upper", 7), lf = find("lower", 10), ls = find("lower", 9);
+const places = [["Champion", W(gf), "first"], ["2nd", Lo(gf)], ["3rd", Lo(lf)], ["4th", Lo(ls)]];
+document.getElementById("podium").innerHTML = places.map(([pos, p, cls]) => !p ? `
+  <div class="place ${cls || ""} tbd"><span class="pos">${pos}</span><span class="who"><span class="nm" style="--cc:var(--muted)">TBD</span></span><span class="sp">Decided by the results you mark</span></div>` : `
+  <div class="place ${cls || ""}" data-p="${p[0]}" tabindex="0" role="button" style="--cc:var(--c-${p[1]})">
+    <span class="pos">${pos}</span>
+    <span class="who">${icons(p)}<span class="nm">${p[0]}</span></span>
+    <span class="sp">${specLabel(p)} · seed #${p[3]}</span>
+  </div>`).join("");
+
+document.querySelectorAll(".mode-btn").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === MODE)));
+document.getElementById("mode-desc").innerHTML = MODE_DESC[MODE];
+document.getElementById("legend-flip").textContent = SIMPLER[MODE] ? `this pick differs from the ${MODE_LABEL[SIMPLER[MODE]]} model` : "";
+document.getElementById("legend-flip-wrap").hidden = !SIMPLER[MODE];
+document.querySelectorAll("[data-step]").forEach(el => el.classList.toggle("off", !el.dataset.step.split(" ").includes(MODE)));
+const nRes = M.filter(m => m[13]).length, stale = Object.keys(RESULTS).length - nRes;
+document.getElementById("res-count").innerHTML = nRes ? `<b>${nRes}</b> real result${nRes === 1 ? "" : "s"} entered${stale > 0 ? ` · ${stale} no longer match the bracket (an earlier result changed)` : ""}` : "No real results entered yet";
+document.getElementById("res-reset").hidden = !Object.keys(RESULTS).length;
+if (typeof current !== "undefined" && current) follow(current);
+}
+const MODE_DESC = {
+  none: "<b>No prediction</b>: only the results you mark. Later rounds stay empty until a winner is ticked.",
+  class: "<b>Class</b>: only class-vs-class win rates from the Swiss. Same-class matches are 50/50 and go to the higher seed.",
+  spec: "<b>Spec</b>: spec-vs-spec win rates, leaning on class numbers when a spec matchup has few games.",
+  player: "<b>Player</b>: spec odds, shifted by each player's own Swiss record in that matchup."
+};
+// follow a player
+let current = null;
+function follow(name) {
+  current = name;
+  document.body.classList.toggle("sel", !!name);
+  document.querySelectorAll(".hl,.adv,.from,.me").forEach(el => el.classList.remove("hl", "adv", "from", "me"));
+  document.getElementById("follow").hidden = !name;
+  if (!name) return;
+  document.getElementById("follow-name").textContent = name;
+  document.querySelectorAll(`[data-p="${CSS.escape(name)}"]`).forEach(el => el.classList.add("me"));
+  let played = 0, won = 0;
+  for (const id of ["upper", "lower"]) {
+    const tree = document.getElementById(id);
+    let prevAdv = false, first = null;
+    tree.querySelectorAll(".col").forEach(col => {
+      let adv = false;
+      col.querySelectorAll(".slot").forEach(slot => {
+        const ms = [...slot.querySelectorAll(".m")].filter(m => m.dataset.ps.split("|").includes(name));
+        if (!ms.length) return;
+        ms.forEach(m => { m.classList.add("hl"); played++; if (m.dataset.w === name) won++; });
+        first = first || slot;
+        if (prevAdv) slot.classList.add("from");
+        if (ms.some(m => m.dataset.w === name)) { slot.classList.add("adv"); adv = true; }
+      });
+      prevAdv = adv;
+    });
+    if (first) { const sc = tree.closest(".scroll"); sc.scrollTo({ left: Math.max(0, first.closest(".col").offsetLeft - 20), behavior: "smooth" }); }
+  }
+  document.getElementById("follow-sum").textContent = `${played} predicted match${played === 1 ? "" : "es"}, ${won} won`;
+}
+let resetArmed = false;
+document.addEventListener("click", e => {
+  const s = e.target.closest("[data-set]");
+  if (s) {
+    const i = s.dataset.set.indexOf("|"), key = s.dataset.set.slice(0, i), name = s.dataset.set.slice(i + 1);
+    if (RESULTS[key] === name) delete RESULTS[key]; else RESULTS[key] = name;
+    saveResults(); render(); return;
+  }
+  const rr = e.target.closest("#res-reset");
+  if (rr) {
+    if (!resetArmed) { resetArmed = true; rr.textContent = "Click again to clear all results"; rr.classList.add("warn"); setTimeout(() => { resetArmed = false; rr.textContent = "Reset results"; rr.classList.remove("warn"); }, 4000); return; }
+    RESULTS = {}; saveResults(); resetArmed = false; rr.textContent = "Reset results"; rr.classList.remove("warn"); render(); return;
+  }
+  if (e.target.closest("#follow-clear")) return follow(null);
+  const el = e.target.closest("[data-p]"); if (!el) return;
+  follow(current === el.dataset.p ? null : el.dataset.p);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") return follow(null);
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-p]")) { e.preventDefault(); e.target.click(); }
+});
+
+try { const saved = localStorage.getItem("fo-mode"); if (MODEL[saved] || saved === "none") MODE = saved; } catch (e) {}
+document.getElementById("modes").addEventListener("click", e => {
+  const b = e.target.closest(".mode-btn"); if (!b || b.dataset.mode === MODE) return;
+  MODE = b.dataset.mode; try { localStorage.setItem("fo-mode", MODE); } catch (err) {}
+  render();
+});
+render();
+</script>
